@@ -8,7 +8,7 @@ import {
   Image,
 } from "react-native";
 import { Card, Button, Icon } from "react-native-elements";
-import Swipe from "./src/Swiper/index_1";
+import Swipe from "./src/Swiper";
 import jobs from "./src/data";
 
 class App extends Component {

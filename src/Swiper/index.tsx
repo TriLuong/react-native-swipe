@@ -1,4 +1,4 @@
-import React, { Component } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Animated,
@@ -8,78 +8,147 @@ import {
   UIManager,
   Platform,
 } from "react-native";
+import { Button, Card } from "react-native-elements";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 const SWIPE_THRESHOLD = 0.25 * SCREEN_WIDTH;
 const SWIPE_OUT_DURATION = 250;
 
-class Swipe extends Component {
-  static defaultProps = {
-    onSwipeRight: () => {},
-    onSwipeLeft: () => {},
-    keyProp: "id",
-  };
+interface SwipeProps {
+  onSwipeRight: () => {};
+  onSwipeLeft: () => {};
+  renderNoMoreCards: () => {};
+  renderCard: (item: any) => {};
+  onReset: () => {};
+  keyProp: "id";
+  data: any;
+  stackSize: number;
+  loop?: boolean;
+  isRemoveSwipeLeft?: boolean;
+  isRemoveSwipeRight?: boolean;
+}
 
-  constructor(props) {
-    super(props);
+const Swipe = ({
+  onSwipeRight,
+  onSwipeLeft,
+  //   renderNoMoreCards,
+  renderCard,
+  onReset,
+  keyProp,
+  data,
+  stackSize = 3,
+  loop = false,
+  isRemoveSwipeLeft = false,
+  isRemoveSwipeRight = false,
+}: SwipeProps) => {
+  const position = new Animated.ValueXY();
+  const panResponder = PanResponder.create({
+    onStartShouldSetPanResponder: () => true,
+    onPanResponderMove: (event, gesture) => {
+      position.setValue({ x: gesture.dx, y: gesture.dy });
+    },
+    onPanResponderRelease: (event, gesture) => {
+      console.log("gesture", gesture);
+      if (gesture.dx > SWIPE_THRESHOLD) {
+        forceSwipe("right");
+      } else if (gesture.dx < -SWIPE_THRESHOLD) {
+        forceSwipe("left");
+      } else if (gesture.dy < -SWIPE_THRESHOLD) {
+        forceSwipe("top");
+      } else {
+        resetPosition();
+      }
+    },
+  });
 
-    const position = new Animated.ValueXY();
-    const panResponder = PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onPanResponderMove: (event, gesture) => {
-        position.setValue({ x: gesture.dx, y: gesture.dy });
-      },
-      onPanResponderRelease: (event, gesture) => {
-        if (gesture.dx > SWIPE_THRESHOLD) {
-          this.forceSwipe("right");
-        } else if (gesture.dx < -SWIPE_THRESHOLD) {
-          this.forceSwipe("left");
-        } else {
-          this.resetPosition();
-        }
-      },
-    });
+  const [index, setIndex] = useState(0);
+  const [cards, setCards] = useState(data);
 
-    this.state = { panResponder, position, index: 0 };
-  }
+  console.log("RENDER", cards);
 
-  componentWillReceiveProps(nextProps) {
-    if (nextProps.data !== this.props.data) {
-      this.setState({ index: 0 });
+  useEffect(() => {
+    setIndex(0);
+  }, [onReset]);
+
+  function forceSwipe(direction: string) {
+    let toValue = { x: 0, y: 0 };
+    switch (direction) {
+      case "right":
+        toValue = { x: SCREEN_WIDTH, y: 0 };
+        break;
+      case "left":
+        toValue = { x: -SCREEN_WIDTH, y: 0 };
+        break;
+      case "top":
+        toValue = { x: 0, y: -SCREEN_WIDTH };
+        break;
+      default:
+        break;
     }
+    Animated.timing(position, {
+      toValue: toValue,
+      duration: SWIPE_OUT_DURATION,
+      useNativeDriver: false,
+    }).start(() => onSwipeComplete(direction));
   }
 
-  componentWillUpdate() {
+  function onSwipeComplete(direction: string) {
+    const item = data[index];
+
+    direction === "right" ? onSwipeRight(item) : onSwipeLeft(item);
+    position.setValue({ x: 0, y: 0 });
+
     UIManager.setLayoutAnimationEnabledExperimental &&
       UIManager.setLayoutAnimationEnabledExperimental(true);
     LayoutAnimation.spring();
+    if (loop) {
+      const newCards = [...cards];
+      console.log("loop before", newCards);
+
+      const isRemoveCardIndex =
+        (direction === "left" && isRemoveSwipeLeft) ||
+        (direction === "right" && isRemoveSwipeRight);
+      if (!isRemoveCardIndex) {
+        newCards.push(newCards[0]);
+        newCards.shift();
+      } else if (isRemoveCardIndex) {
+        newCards.shift();
+      }
+      console.log("loop", newCards);
+
+      setCards(newCards);
+      setIndex(0);
+    } else {
+      setIndex(index + 1);
+    }
   }
 
-  forceSwipe(direction) {
-    const x = direction === "right" ? SCREEN_WIDTH : -SCREEN_WIDTH;
-    Animated.timing(this.state.position, {
-      toValue: { x, y: 0 },
-      duration: SWIPE_OUT_DURATION,
-    }).start(() => this.onSwipeComplete(direction));
-  }
-
-  onSwipeComplete(direction) {
-    const { onSwipeLeft, onSwipeRight, data } = this.props;
-    const item = data[this.state.index];
-
-    direction === "right" ? onSwipeRight(item) : onSwipeLeft(item);
-    this.state.position.setValue({ x: 0, y: 0 });
-    this.setState({ index: this.state.index + 1 });
-  }
-
-  resetPosition() {
-    Animated.spring(this.state.position, {
+  function resetPosition() {
+    Animated.spring(position, {
       toValue: { x: 0, y: 0 },
+      useNativeDriver: false,
     }).start();
   }
 
-  getCardStyle() {
-    const { position } = this.state;
+  const renderNoMoreCards = () => {
+    return (
+      <Card title="No More cards">
+        <Button
+          title="Do something"
+          large
+          icon={{ name: "my-location" }}
+          backgroundColor="#03A9F4"
+          onPress={() => {
+            setCards(data);
+
+            setIndex(0);
+          }}
+        />
+      </Card>
+    );
+  };
+
+  function getCardStyle() {
     const rotate = position.x.interpolate({
       inputRange: [-SCREEN_WIDTH * 1.5, 0, SCREEN_WIDTH * 1.5],
       outputRange: ["-120deg", "0deg", "120deg"],
@@ -91,53 +160,93 @@ class Swipe extends Component {
     };
   }
 
-  renderCards() {
-    if (this.state.index >= this.props.data.length) {
-      return this.props.renderNoMoreCards();
+  function renderCards() {
+    if (index >= cards.length) {
+      return renderNoMoreCards();
     }
 
-    const deck = this.props.data.map((item, i) => {
-      if (i < this.state.index) {
+    const deck = cards.map((item, i) => {
+      if (i < index) {
         return null;
       }
 
-      if (i === this.state.index) {
+      if (i === (!loop ? index : 0)) {
+        console.log("renderCards", i, index);
+
         return (
           <Animated.View
-            key={item[this.props.keyProp]}
-            style={[this.getCardStyle(), styles.cardStyle, { zIndex: 99 }]}
-            {...this.state.panResponder.panHandlers}
+            key={`${item[keyProp]}${cards.length === 1 ? Math.random() : ""}`}
+            style={[getCardStyle(), styles.cardStyle, { zIndex: 99 }]}
+            {...panResponder.panHandlers}
           >
-            {this.props.renderCard(item)}
+            {renderCard(item)}
+          </Animated.View>
+        );
+      } else if (i - (!loop ? index : 0) < stackSize) {
+        return (
+          <Animated.View
+            key={item[keyProp]}
+            style={[
+              styles.cardStyle,
+              styles.cardStyleSecond,
+              { top: 20 * (i - index), zIndex: 5 },
+            ]}
+          >
+            {renderCard(item)}
           </Animated.View>
         );
       }
-
-      return (
-        <Animated.View
-          key={item[this.props.keyProp]}
-          style={[
-            styles.cardStyle,
-            { top: 20 * (i - this.state.index), zIndex: 5 },
-          ]}
-        >
-          {this.props.renderCard(item)}
-        </Animated.View>
-      );
     });
 
     return Platform.OS === "android" ? deck : deck.reverse();
   }
 
-  render() {
-    return <View>{this.renderCards()}</View>;
-  }
-}
+  return (
+    <View>
+      {renderCards()}
+      <View
+        style={{
+          marginTop: 100,
+          justifyContent: "space-between",
+          alignItems: "center",
+          flexDirection: "row",
+        }}
+      >
+        <Button
+          title="Left"
+          large
+          backgroundColor="#03A9F4"
+          onPress={() => {
+            forceSwipe("left");
+          }}
+        />
+        <Button
+          title="Maybe"
+          large
+          backgroundColor="#03A9F4"
+          onPress={() => {
+            forceSwipe("top");
+          }}
+        />
+        <Button
+          title="Right"
+          large
+          backgroundColor="#03A9F4"
+          onPress={() => {
+            forceSwipe("right");
+          }}
+        />
+      </View>
+    </View>
+  );
+};
 
 const styles = {
   cardStyle: {
-    position: "absolute",
     width: SCREEN_WIDTH,
+  },
+  cardStyleSecond: {
+    position: "absolute",
   },
 };
 
