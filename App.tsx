@@ -15,6 +15,7 @@ class App extends Component {
   state = {
     likedJobs: 0,
     passedJobs: 0,
+    cards: jobs,
   };
 
   handleLikedJob = () => {
@@ -77,10 +78,11 @@ class App extends Component {
           onSwipeLeft={this.handlePassedJob}
           onReset={this.onReset}
           keyProp="jobId"
-          data={jobs}
+          data={this.state.cards}
           renderCard={this.renderCards}
           renderNoMoreCards={this.renderNoMoreCards}
           loop={true}
+          isRemoveSwipeLeft={true}
         />
       </SafeAreaView>
     );

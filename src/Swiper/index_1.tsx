@@ -24,6 +24,7 @@ interface SwipeProps {
   data: any;
   stackSize: number;
   loop?: boolean;
+  isRemoveSwipeLeft?: boolean;
 }
 
 const Swipe = ({
@@ -36,8 +37,8 @@ const Swipe = ({
   data,
   stackSize = 3,
   loop = false,
+  isRemoveSwipeLeft = false,
 }: SwipeProps) => {
-  console.log("RENDER");
   const position = new Animated.ValueXY();
   const panResponder = PanResponder.create({
     onStartShouldSetPanResponder: () => true,
@@ -58,6 +59,8 @@ const Swipe = ({
   const [index, setIndex] = useState(0);
   const [cards, setCards] = useState(data);
 
+  console.log("RENDER", cards);
+
   useEffect(() => {
     setIndex(0);
   }, [onReset]);
@@ -76,13 +79,21 @@ const Swipe = ({
 
     direction === "right" ? onSwipeRight(item) : onSwipeLeft(item);
     position.setValue({ x: 0, y: 0 });
+
     UIManager.setLayoutAnimationEnabledExperimental &&
       UIManager.setLayoutAnimationEnabledExperimental(true);
     LayoutAnimation.spring();
     if (loop) {
       const newCards = [...cards];
-      newCards.push(newCards[0]);
-      newCards.shift();
+      console.log("loop before", newCards);
+
+      const isRemoveCardIndex = direction === "left" && isRemoveSwipeLeft;
+      if (!isRemoveCardIndex) {
+        newCards.push(newCards[0]);
+        newCards.shift();
+      } else if (isRemoveCardIndex) {
+        newCards.shift();
+      }
       console.log("loop", newCards);
 
       setCards(newCards);
@@ -108,6 +119,8 @@ const Swipe = ({
           icon={{ name: "my-location" }}
           backgroundColor="#03A9F4"
           onPress={() => {
+            setCards(data);
+
             setIndex(0);
           }}
         />
@@ -138,9 +151,11 @@ const Swipe = ({
       }
 
       if (i === (!loop ? index : 0)) {
+        console.log("renderCards", i, index);
+
         return (
           <Animated.View
-            key={item[keyProp]}
+            key={`${item[keyProp]}${cards.length === 1 ? Math.random() : ""}`}
             style={[getCardStyle(), styles.cardStyle, { zIndex: 99 }]}
             {...panResponder.panHandlers}
           >
