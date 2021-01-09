@@ -20,6 +20,7 @@ interface SwipeProps {
   renderNoMoreCards: () => {};
   renderCard: (item: any) => {};
   onReset: () => {};
+  onTap: (item: any) => {};
   keyProp: "id";
   data: any;
   stackSize: number;
@@ -34,6 +35,7 @@ const Swipe = ({
   //   renderNoMoreCards,
   renderCard,
   onReset,
+  onTap,
   keyProp,
   data,
   stackSize = 3,
@@ -43,18 +45,21 @@ const Swipe = ({
 }: SwipeProps) => {
   const position = new Animated.ValueXY();
   const panResponder = PanResponder.create({
+    onStartShouldSetPanResponderCapture: () => false,
     onStartShouldSetPanResponder: () => true,
     onPanResponderMove: (event, gesture) => {
       position.setValue({ x: gesture.dx, y: gesture.dy });
     },
     onPanResponderRelease: (event, gesture) => {
-      console.log("gesture", gesture);
       if (gesture.dx > SWIPE_THRESHOLD) {
         forceSwipe("right");
       } else if (gesture.dx < -SWIPE_THRESHOLD) {
         forceSwipe("left");
       } else if (gesture.dy < -SWIPE_THRESHOLD) {
         forceSwipe("top");
+      } else if (gesture.dx === 0 && gesture.dy === 0) {
+        onTap && onTap(cards[index]);
+        resetPosition();
       } else {
         resetPosition();
       }
@@ -63,6 +68,11 @@ const Swipe = ({
 
   const [index, setIndex] = useState(0);
   const [cards, setCards] = useState(data);
+
+  useEffect(() => {
+    console.log("data", data);
+    setCards(data);
+  }, [data]);
 
   console.log("RENDER", cards);
 
@@ -165,7 +175,7 @@ const Swipe = ({
       return renderNoMoreCards();
     }
 
-    const deck = cards.map((item, i) => {
+    const deck = cards?.map((item, i) => {
       if (i < index) {
         return null;
       }

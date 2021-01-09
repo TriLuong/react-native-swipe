@@ -6,6 +6,7 @@ import {
   StyleSheet,
   Platform,
   Image,
+  TouchableOpacity,
 } from "react-native";
 import { Card, Button, Icon } from "react-native-elements";
 import Swipe from "./src/Swiper";
@@ -83,6 +84,28 @@ class App extends Component {
           renderNoMoreCards={this.renderNoMoreCards}
           loop={true}
           isRemoveSwipeLeft={true}
+          isRemoveSwipeRight={true}
+          onTap={(value: any) => {
+            console.log("onTap", value);
+          }}
+        />
+        <Button
+          title="Add more"
+          large
+          style={{ marginTop: 20 }}
+          backgroundColor="#03A9F4"
+          onPress={() => {
+            const card = {
+              jobtitle: `Test ${this.state.cards.length}`,
+              company: `Test ${this.state.cards.length}`,
+              snippet:
+                "a <b>Java</b> Developer to join our team. This position will be responsible for design and development of <b>Java</b>... <b>Java</b> or C# Frameworks/Skills: <b>Java</b> EE, <b>Java</b> Swing or... ",
+              jobId: `83400e947276d20b${this.state.cards.length}`,
+              formattedRelativeTime: "1 day ago",
+            };
+            const newCards = [...this.state.cards, card];
+            this.setState({ cards: newCards });
+          }}
         />
       </SafeAreaView>
     );
