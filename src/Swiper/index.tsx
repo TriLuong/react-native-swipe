@@ -1,4 +1,9 @@
-import React, { useEffect, useState } from "react";
+import React, {
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useState,
+} from "react";
 import {
   View,
   Animated,
@@ -29,20 +34,31 @@ interface SwipeProps {
   isRemoveSwipeRight?: boolean;
 }
 
-const Swipe = ({
-  onSwipeRight,
-  onSwipeLeft,
-  //   renderNoMoreCards,
-  renderCard,
-  onReset,
-  onTap,
-  keyProp,
-  data,
-  stackSize = 3,
-  loop = false,
-  isRemoveSwipeLeft = false,
-  isRemoveSwipeRight = false,
-}: SwipeProps) => {
+export interface SwipeRef {
+  addCards?(items: any): void;
+}
+
+const Swipe = forwardRef((props: SwipeProps, ref: any) => {
+  useImperativeHandle(ref, () => ({
+    addCards: (items: any) => {
+      setCards([...cards, ...items]);
+    },
+  }));
+
+  const {
+    onSwipeRight,
+    onSwipeLeft,
+    //   renderNoMoreCards,
+    renderCard,
+    onReset,
+    onTap,
+    keyProp,
+    data,
+    stackSize = 3,
+    loop = false,
+    isRemoveSwipeLeft = false,
+    isRemoveSwipeRight = false,
+  } = props;
   const position = new Animated.ValueXY();
   const panResponder = PanResponder.create({
     onStartShouldSetPanResponderCapture: () => false,
@@ -249,7 +265,7 @@ const Swipe = ({
       </View>
     </View>
   );
-};
+});
 
 const styles = {
   cardStyle: {

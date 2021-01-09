@@ -1,4 +1,4 @@
-import React, { Component } from "react";
+import React, { Component, useState, useRef } from "react";
 import {
   SafeAreaView,
   Text,
@@ -9,29 +9,24 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { Card, Button, Icon } from "react-native-elements";
-import Swipe from "./src/Swiper";
+import Swipe, { SwipeRef } from "./src/Swiper";
 import jobs from "./src/data";
 
-class App extends Component {
-  state = {
-    likedJobs: 0,
-    passedJobs: 0,
-    cards: jobs,
+const App = () => {
+  const [likedJobs, setLikedJobs] = useState(0);
+  const [passedJobs, setPassedJobs] = useState(0);
+  const [cards, setCards] = useState(jobs);
+  const swipeRef = useRef<SwipeRef>(null);
+
+  const handleLikedJob = () => {
+    setLikedJobs(likedJobs + 1);
   };
 
-  handleLikedJob = () => {
-    this.setState(({ likedJobs }) => ({
-      likedJobs: likedJobs + 1,
-    }));
+  const handlePassedJob = () => {
+    setPassedJobs(passedJobs + 1);
   };
 
-  handlePassedJob = () => {
-    this.setState(({ passedJobs }) => ({
-      passedJobs: passedJobs + 1,
-    }));
-  };
-
-  renderCards(job) {
+  function renderCards(job) {
     return (
       <Card title={job.jobtitle} titleStyle={{ fontSize: 14 }}>
         <View style={{ height: 200 }}>
@@ -51,7 +46,7 @@ class App extends Component {
     );
   }
 
-  renderNoMoreCards = () => {
+  const renderNoMoreCards = () => {
     return (
       <Card title="No More cards">
         <Button
@@ -59,7 +54,7 @@ class App extends Component {
           large
           icon={{ name: "my-location" }}
           backgroundColor="#03A9F4"
-          onPress={this.onReset}
+          onPress={onReset}
         />
       </Card>
     );
@@ -67,50 +62,50 @@ class App extends Component {
 
   onReset = () => {};
 
-  render() {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.statusStyle}>
-          <Text style={{ color: "red" }}>Passed: {this.state.passedJobs}</Text>
-          <Text style={{ color: "blue" }}>Like: {this.state.likedJobs}</Text>
-        </View>
-        <Swipe
-          onSwipeRight={this.handleLikedJob}
-          onSwipeLeft={this.handlePassedJob}
-          onReset={this.onReset}
-          keyProp="jobId"
-          data={this.state.cards}
-          renderCard={this.renderCards}
-          renderNoMoreCards={this.renderNoMoreCards}
-          loop={true}
-          isRemoveSwipeLeft={true}
-          isRemoveSwipeRight={true}
-          onTap={(value: any) => {
-            console.log("onTap", value);
-          }}
-        />
-        <Button
-          title="Add more"
-          large
-          style={{ marginTop: 20 }}
-          backgroundColor="#03A9F4"
-          onPress={() => {
-            const card = {
-              jobtitle: `Test ${this.state.cards.length}`,
-              company: `Test ${this.state.cards.length}`,
+  return (
+    <SafeAreaView style={styles.container}>
+      <View style={styles.statusStyle}>
+        <Text style={{ color: "red" }}>Passed: {passedJobs}</Text>
+        <Text style={{ color: "blue" }}>Like: {likedJobs}</Text>
+      </View>
+      <Swipe
+        ref={swipeRef}
+        onSwipeRight={handleLikedJob}
+        onSwipeLeft={handlePassedJob}
+        onReset={onReset}
+        keyProp="jobId"
+        data={cards}
+        renderCard={renderCards}
+        renderNoMoreCards={renderNoMoreCards}
+        loop={true}
+        isRemoveSwipeLeft={true}
+        isRemoveSwipeRight={true}
+        onTap={(value: any) => {
+          console.log("onTap", value);
+        }}
+      />
+      <Button
+        title="Add more"
+        large
+        style={{ marginTop: 20 }}
+        backgroundColor="#03A9F4"
+        onPress={() => {
+          const card = [
+            {
+              jobtitle: `Test ${cards.length} ${Math.random()}`,
+              company: `Test ${cards.length} ${Math.random()}`,
               snippet:
                 "a <b>Java</b> Developer to join our team. This position will be responsible for design and development of <b>Java</b>... <b>Java</b> or C# Frameworks/Skills: <b>Java</b> EE, <b>Java</b> Swing or... ",
-              jobId: `83400e947276d20b${this.state.cards.length}`,
+              jobId: `83400e947276d20b${cards.length}${Math.random()}`,
               formattedRelativeTime: "1 day ago",
-            };
-            const newCards = [...this.state.cards, card];
-            this.setState({ cards: newCards });
-          }}
-        />
-      </SafeAreaView>
-    );
-  }
-}
+            },
+          ];
+          swipeRef?.current?.addCards(card);
+        }}
+      />
+    </SafeAreaView>
+  );
+};
 
 const styles = StyleSheet.create({
   container: {
